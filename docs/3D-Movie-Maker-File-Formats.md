@@ -199,6 +199,10 @@ Offset | Type | Length | Description
 
 ## TMAP (Texture Map)
 
+Some textures contain one or more columns of apparent junk pixels (random colours) on the right side of the image. These columns are included in the column count (i.e., width) stored in the `TMAP` file.
+
+Materials that reference textures containing junk data also reference a `TXXF` file (materials referencing textures with no junk data do not), so presumably the `TXXF` file contains information that crops the texture or otherwise specifies how the extra columns are to be interpreted.
+
 Offset | Type | Length | Description
 ---|---|---|---
 0 | N/A | 4 | Signature (0x01_00_03_03)
