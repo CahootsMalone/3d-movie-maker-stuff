@@ -139,6 +139,25 @@ Offset | Type | Length | Description
 2 | uint | 1 | Red component
 3 | uint | 1 | Alpha component
 
+## GLPI (List of Actor Body Part Parents)
+
+In the GGCL file (described in detail above) for one of an actor's animations, each frame contains a list of pairs of models (stored in BMDL files) and transforms (stored in the actor's GLXF file). Each pair represents one of the actor's body parts. Multiple pairs may refer to the same model if it's used more than once (for example, both Fabrice the rat's front legs use the same model).
+
+Each body part/GGCL pair may have a parent: if so, the model associated with that pair should first have the pair's transform applied to it, then the transform of the pair's parent, then the transform of the pair's parent's parent (if applicable), and so forth.
+
+Body part parents are stored in the GLPI file. There is only one GLPI file for each actor, not one for each animation that actor possesses, so the order of body parts within each frame of every GGCL file must be consistent.
+
+Offset | Type | Length | Description
+---|---|---|---
+0 | N/A | 4 | Signature (0x01_00_03_03)
+4 | N/A | 8 | Unknown (always 2)
+8 | uint | 4 | Number of body parts/GGCL pairs for which a parent is specified (N)
+12 | N/A | N * 2 | N parent IDs
+
+### Parent ID
+
+Each parent ID is a single, two-byte, signed integer. A value of -1 means the body part has no parent (only its own transform should be applied to the model associated with it).
+
 ## GLXF (List of Transformation Matrices)
 
 Transforms in 3DMM appear to use the [`br_matrix34` type from BRender](https://rr2000.cwaboard.co.uk/R4/BRENDER/TEBK_47.HTM#MARKER2_212), as each stores 12 of the 16 elements of an affine transformation matrix in homogenous form (for those unfamiliar with these transformations, [this page](https://www.brainvoyager.com/bv/doc/UsersGuide/CoordsAndTransforms/SpatialTransformationMatrices.html) contains a good summary). Elements are stored in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order) but skip the fourth column (which contains constant values as described in the next paragraph).
