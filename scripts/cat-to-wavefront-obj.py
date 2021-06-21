@@ -3,6 +3,7 @@ from threedmm_read_glxf import load_transforms
 from threedmm_read_ggcl import load_ggcl
 from threedmm_misc import apply_transform
 from threedmm_bmdl import ThreeDMovieMakerBMDL
+from threedmm_read_glpi import read_glpi
 
 # By inspection of Totem Pole 1 transforms: identity matrix has elements set to 65532 where 1.0 would make sense.
 SCALE_TRANSFORM = 65535.0
@@ -50,6 +51,7 @@ def add_bmdl_to_obj_file(path_bmdl_file, path_obj_file, existing_vertex_count, o
 path_base = "C:/3D Movie Maker stuff/Cat"
 glxf_path = path_base + "/at rest.GLXF"
 ggcl_path = path_base + "/at rest.GGCL"
+glpi_path = path_base + "/cat.GLPI"
 path_bmdl_directory = path_base
 
 
@@ -70,6 +72,11 @@ for i in range(len(frames)):
 
 
 
+parents = read_glpi(glpi_path)
+print("Parents:\n" + str(parents))
+
+
+
 bmdl_files = []
 
 # TODO order intelligently rather than requiring leading zeroes in file names.
@@ -77,23 +84,7 @@ for file in os.listdir(path_bmdl_directory):
     if file.endswith(EXTENSION_BMDL):
         bmdl_files.append(file)
 
-print(bmdl_files)
-
-# For the cat, the first BMDL is empty and presumably serves to establish a coordinate frame for the cat.
-# For the cat's spin animation, only the transform of the first pair (which uses BMDL 00) changes.
-# BMDL 00 appears again in the sixth pair.
-
-
-# By inspection, the cat's model hierarchy is:
-# Pair 0 (reference frame 1)
-#   Body
-#     Front legs (2 models)
-#     Tail
-#     Pair 5 (reference frame 2)
-#       Head
-#         Ears (2 models)
-#         Back of head (its own model, for some reason; the head otherwise has a large hole in it)
-
+print("BMDL files:\n" + str(bmdl_files))
 
 identity_transform = [SCALE_TRANSFORM, 0, 0, 0, SCALE_TRANSFORM, 0, 0, 0, SCALE_TRANSFORM, 0, 0, 0]
 
@@ -102,19 +93,27 @@ for frame_index in range(len(frames)):
     out_path = 'out-' + str(frame_index) + '.obj'
 
     with open(out_path, 'w') as out_file:
-        out_file.write("# BMDL from 3D Movie Maker converted to Wavefront OBJ\n")
+        out_file.write("# Actor model from 3D Movie Maker converted to Wavefront OBJ\n")
 
     vertex_count = 0
 
-    print("Frame " + str(frame_index))
+    print("Generating file for frame " + str(frame_index))
     print("\tMove units: " + str(frames[frame_index][0]))
 
     for pair_index in range(len(frames[frame_index][1])):
+
+        # Get list of transforms based on parenting hierarchy.
+        cur_pair_index = pair_index
+        transforms_to_apply = []
+        while cur_pair_index != -1:
+            index_glxf = frames[frame_index][1][cur_pair_index][1]
+            transforms_to_apply.append(transforms[index_glxf])
+            cur_pair_index = parents[cur_pair_index] # Get parent's pair index
         
         index_bmdl = frames[frame_index][1][pair_index][0]
         index_glxf = frames[frame_index][1][pair_index][1]
         
-        print("\tBMDL: " + str(index_bmdl) + ", GLXF: " + str(index_glxf))
+        print("\tPair index: " + str(pair_index) + ", BMDL: " + str(index_bmdl) + ", GLXF: " + str(index_glxf))
 
         bmdl_file_name = bmdl_files[index_bmdl]
         bmdl_path = path_bmdl_directory + "/" + bmdl_file_name
@@ -122,35 +121,4 @@ for frame_index in range(len(frames)):
 
         material_name = "mat" + bmdl_file_name
 
-        if pair_index == 0:
-            # Just apply the specified transform.
-            vertex_count += add_bmdl_to_obj_file(bmdl_path, out_path, vertex_count, object_name, [transforms[index_glxf]], material_name)
-        elif index_bmdl in [2, 3, 4]: # Left front leg, right front leg, tail
-
-            # Frame index / list of pairs / pair index / glxf
-            # I should write a class for the frames as these nested indices are rather ridiculous!
-            index_ref_1_glxf = frames[frame_index][1][0][1]
-            index_body_glxf = frames[frame_index][1][1][1]
-
-            vertex_count += add_bmdl_to_obj_file(bmdl_path, out_path, vertex_count, object_name, [transforms[index_glxf], transforms[index_body_glxf], transforms[index_ref_1_glxf]], material_name)
-        elif index_bmdl in [5]: # Head
-            index_ref_1_glxf = frames[frame_index][1][0][1]
-            index_body_glxf = frames[frame_index][1][1][1]
-            index_ref_2_glxf = frames[frame_index][1][5][1]
-
-            vertex_count += add_bmdl_to_obj_file(bmdl_path, out_path, vertex_count, object_name, 
-                [transforms[index_glxf], transforms[index_ref_2_glxf], transforms[index_body_glxf], transforms[index_ref_1_glxf]], material_name)
-
-        elif index_bmdl in [6, 7, 8]: # Ears and back of cat's head (strange that the back of the head is separate from the rest of it)
-            index_ref_1_glxf = frames[frame_index][1][0][1]
-            index_body_glxf = frames[frame_index][1][1][1]
-            index_ref_2_glxf = frames[frame_index][1][5][1]
-            index_head_glxf = frames[frame_index][1][6][1] # The head is BMDL 05, which appears in the pair at index 6
-
-            vertex_count += add_bmdl_to_obj_file(bmdl_path, out_path, vertex_count, object_name, 
-                [transforms[index_glxf], transforms[index_head_glxf], transforms[index_ref_2_glxf], transforms[index_body_glxf], transforms[index_ref_1_glxf]], material_name)
-        else:
-            # Apply the transform from the first pair, then the specified transform.
-            index_first_glxf = frames[frame_index][1][0][1]
-            vertex_count += add_bmdl_to_obj_file(bmdl_path, out_path, vertex_count, object_name, 
-                [transforms[index_glxf], transforms[index_first_glxf]], material_name)
+        vertex_count += add_bmdl_to_obj_file(bmdl_path, out_path, vertex_count, object_name, transforms_to_apply, material_name)
