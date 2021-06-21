@@ -25,6 +25,12 @@ class ThreeDMovieMakerBMDL:
         vertexStart = 4 + 2 + 2 + 40
         triangleStart = vertexStart + 32*vertexCount
 
+        #print('Header stuff')
+
+        #print(data[0:48].hex('|', -2))
+
+        #print('Vertices')
+
         for i in range(vertexCount):
             curVertStart = vertexStart + 32*i
 
@@ -34,7 +40,11 @@ class ThreeDMovieMakerBMDL:
             u = int.from_bytes(data[curVertStart+12:curVertStart+16], byteorder=self.ORDER_LITTLE, signed=True) / self.SCALE_TEXTURE
             v = int.from_bytes(data[curVertStart+16:curVertStart+20], byteorder=self.ORDER_LITTLE, signed=True) / self.SCALE_TEXTURE
 
+            #print(data[curVertStart:curVertStart+32].hex('|', -4))
+
             self.vertices.append(BmdlVertex(x, y, z, u, v))
+
+        #print('Triangles')
 
         for i in range(triangleCount):
             curTriStart = triangleStart + 32*i
@@ -42,6 +52,8 @@ class ThreeDMovieMakerBMDL:
             v1 = int.from_bytes(data[curTriStart:curTriStart+2], byteorder=self.ORDER_LITTLE, signed=False)
             v2 = int.from_bytes(data[curTriStart+2:curTriStart+4], byteorder=self.ORDER_LITTLE, signed=False)
             v3 = int.from_bytes(data[curTriStart+4:curTriStart+6], byteorder=self.ORDER_LITTLE, signed=False)
+
+            #print(data[curTriStart:curTriStart+32].hex('|', -2))
 
             self.triangles.append(BmdlTriangle(v1, v2, v3))
     
