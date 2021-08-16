@@ -184,7 +184,7 @@ For example, for Fabrice the rat, the eyes are transformed relative to the head,
 
 *v<sub>transformed</sub><sup>T</sup> = v<sup>T</sup>T<sub>eye-to-head</sub><sup>T</sup>T<sub>head-to-body</sub><sup>T</sup>T<sub>body-to-global</sub><sup>T</sup>*
 
-I haven't determined which file contains parenting information, but it can be determined by inspection easily enough (for each model, first apply just its transform, inspect the result, then try its transform followed by the transform for a model that you think may be its parent, etc.).
+Parenting information is stored in the GLPI file (described above).
 
 Offset | Type | Length | Description
 ---|---|---|---
